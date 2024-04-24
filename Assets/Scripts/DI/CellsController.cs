@@ -161,7 +161,7 @@ namespace CellsSystem
                         Item = obj,
                         Pos = new Vector2Int(v, h)
                     };
-                    obj.name = "v: " + v + "; h: " + h + ";";
+
                     _cellItems.Add(item);
                 }
             }

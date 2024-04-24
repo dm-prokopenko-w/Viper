@@ -6,7 +6,6 @@ using EnemySystem;
 using Game;
 using ItemSystem;
 using PlayerSystem;
-using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 using static Game.Constants;
@@ -28,6 +27,7 @@ namespace ContentCellSystem
         
         private int _bodyCount;
         private int _countToUpdateEnemy;
+        private int _countWin;
         
         public void Start()
         {
@@ -36,6 +36,7 @@ namespace ContentCellSystem
             var dataPlayer = _assetLoader.LoadConfig(PlayerConfigPath) as PlayerConfig;
             _startTime = dataPlayer.TimeStep;
             _step = dataPlayer.Step;
+            _countWin = dataPlayer.CountWin;
         }
 
         public void Dispose()
@@ -51,16 +52,14 @@ namespace ContentCellSystem
             
             SetTimeStep();
             SetBodyCount();
-            
-            _player.UpdateGame(value, HeadConnect, _time);
+            _player.Time = _time;
+            _player.UpdateGame(value, HeadConnect);
             _enemy.UpdateGame(value);
             _bonus.UpdateGame(value);
         }
 
         private void HeadConnect(CellItem cell)
         {
-            if(cell.Type !=  CellType.None) Debug.LogError(cell.Type);
-           
             switch (cell.Type)
             {
                 case CellType.None:
@@ -87,6 +86,7 @@ namespace ContentCellSystem
         {
             _time -= _step;
             _time = (float)Math.Round(_time, 2);
+            _player.Time = _time;
 
             _bodyCount++;
             _countToUpdateEnemy++;
@@ -97,7 +97,7 @@ namespace ContentCellSystem
                 _enemy.SpawnEnemyPack();
             }
 
-            if (_bodyCount >= 10)
+            if (_bodyCount >= _countWin)
             {
                 _gameplay.GameWin();
             }

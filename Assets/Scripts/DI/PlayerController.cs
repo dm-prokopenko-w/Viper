@@ -23,17 +23,23 @@ namespace PlayerSystem
         [Inject] private CellsController _cellsController;
         [Inject] private CoroutineHandler _coroutineHandler;
 
+        public float Time { get; set; }
+        
         private ObjectPool<PlayerBody> _pool;
 
         private PlayerBody _bodyPrefab;
-        private Transform _parentBodyActive;
         private PlayerHead _head;
+        
         private Vector2Int _startPosHead;
         private Vector2Int _startPosBody;
         private Vector2Int _lastPosBody;
+        
         private Coroutine _moveCoroutine;
+        
         private Dir _dir = Dir.Up;
+        
         private LinkedList<PlayerBody> _path = new();
+        
         private bool _isPlay = false;
         
         public void Start()
@@ -45,7 +51,7 @@ namespace PlayerSystem
             InitButtons();
         }
 
-        public void UpdateGame(bool value, Action<CellItem> onHeadConnect, float time)
+        public void UpdateGame(bool value, Action<CellItem> onHeadConnect)
         {
             _isPlay = value;
             _head.gameObject.SetActive(value);
@@ -54,6 +60,7 @@ namespace PlayerSystem
             {
                 _dir = Dir.Up;
                 _head.Pos = _startPosHead;
+                _head.ResetRot();
                 var cell = _cellsController.FindCellItem(_startPosHead);
                 if(cell == null) return;
                 onHeadConnect?.Invoke(cell);
@@ -61,7 +68,7 @@ namespace PlayerSystem
                 _lastPosBody = _cellsController.GetNextPos(_startPosHead, Dir.Down, () =>  _gameplay.GameOver());
                 SpawnNewBody();
                 
-                _moveCoroutine = _coroutineHandler.StartActiveCoroutine(Move(onHeadConnect, time));
+                _moveCoroutine = _coroutineHandler.StartActiveCoroutine(Move(onHeadConnect));
             }
             else
             {
@@ -78,50 +85,59 @@ namespace PlayerSystem
 
         public void SpawnNewBody()
         {
-            _path.AddLast(SpanBody(_lastPosBody));
+            var body = SpanBody(_lastPosBody);
+            if(body == null) return;
+            _path.AddLast(body);
         }
         
         private PlayerBody SpanBody(Vector2Int pos)
         {
-            var body = _pool.Spawn(
-                _bodyPrefab,
-                _parentBodyActive);
-
-            body.Pos = pos;
             var cell = _cellsController.FindCellItem(pos);
-            if (cell == null) return body;
+            if (cell == null) return null;
+
+            var body = _pool.Spawn(_bodyPrefab, cell.Item.transform);
+            body.Pos = pos;
+
             _cellsController.SetToCell(cell, body);
             cell.Type = CellType.Body;
             return body;
         }
 
-        private IEnumerator Move(Action<CellItem> onHeadConnect, float time)
+        private IEnumerator Move(Action<CellItem> onHeadConnect)
         {
             while (true)
             {
-                yield return new WaitForSeconds(time);
+                yield return new WaitForSeconds(Time);
 
                 var newHeadPos = _cellsController.GetNextPos(_head.Pos, _dir, () =>  _gameplay.GameOver());
                 if (_isPlay)
                 {
-                    _path.AddFirst(SpanBody(_head.Pos));
+                    var body = SpanBody(_head.Pos);
+                    if(body != null) _path.AddFirst(body);
                 }
                 
                 var cell = _cellsController.FindCellItem(newHeadPos);
                 if(cell == null) continue;
                 
                 onHeadConnect?.Invoke(cell);
+                
                 _cellsController.SetToCell(cell, _head);
                 _head.Pos = newHeadPos;
-
+                _head.ResetRotCount();
+                
                 if (_path.Count <= 0) break;
-                _cellsController.ClearCell(_path.Last.Value.Pos);
-                _lastPosBody = _path.Last.Value.Pos;
-                _pool.Despawn(_path.Last.Value);
-                _path.RemoveLast();
+                ClearCell();
             }
         }
 
+        private void ClearCell()
+        {
+            _cellsController.ClearCell(_path.Last.Value.Pos);
+            _lastPosBody = _path.Last.Value.Pos;
+            _pool.Despawn(_path.Last.Value);
+            _path.RemoveLast();
+        }
+        
         private void InitHead(PlayerHead prefab)
         {
             var dataCells = _assetLoader.LoadConfig(CellsConfigPath) as CellsConfig;
@@ -137,8 +153,6 @@ namespace PlayerSystem
 
         private void InitBody(PlayerBody prefab)
         {
-            _parentBodyActive =
-                _itemController.GetRectTransform(RectTransformViewID + RectTransformObject.ActivePlayerBodyParent);
             var parentBodyInactive =
                 _itemController.GetRectTransform(RectTransformViewID + RectTransformObject.InactivePlayerBodyParent);
 
@@ -151,6 +165,7 @@ namespace PlayerSystem
         {
             _itemController.SetAction(ButtonViewID + ButtonObject.RotateLeft, () =>
             {
+                if(!_head.RotateLeft()) return;
                 _dir = _dir switch
                 {
                     Dir.Up => Dir.Left,
@@ -162,6 +177,7 @@ namespace PlayerSystem
 
             _itemController.SetAction(ButtonViewID + ButtonObject.RotateRight, () =>
             {
+                if(!_head.RotateRight()) return;
                 _dir = _dir switch
                 {
                     Dir.Up => Dir.Right,
