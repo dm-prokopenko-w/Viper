@@ -1,6 +1,5 @@
 using Game;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace CellsSystem
 {
@@ -11,6 +10,5 @@ namespace CellsSystem
         [Range(1, 30)]public int VerticalCountCells = 20;
 
         public Cell Prefab;
-
     }
 }

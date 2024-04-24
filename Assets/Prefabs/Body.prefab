@@ -50,6 +50,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _rect: {fileID: 6273169130964440416}
+  _type: 2
 --- !u!1 &8923864122408245721
 GameObject:
   m_ObjectHideFlags: 0

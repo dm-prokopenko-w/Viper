@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using CellsSystem;
-using ContentCellSystem;
 using Core;
 using CoroutineSystem;
 using Game;
@@ -16,10 +15,9 @@ using Object = UnityEngine.Object;
 
 namespace PlayerSystem
 {
-    public class PlayerController : IStartable, IDisposable
+    public class PlayerController: IStartable
     {
         [Inject] private GameplayController _gameplay;
-        [Inject] private ContentCellController _contentCell;
         [Inject] private AssetLoader _assetLoader;
         [Inject] private ItemController _itemController;
         [Inject] private CellsController _cellsController;
@@ -32,10 +30,12 @@ namespace PlayerSystem
         private PlayerHead _head;
         private Vector2Int _startPosHead;
         private Vector2Int _startPosBody;
+        private Vector2Int _lastPosBody;
         private Coroutine _moveCoroutine;
         private Dir _dir = Dir.Up;
         private LinkedList<PlayerBody> _path = new();
-
+        private bool _isPlay = false;
+        
         public void Start()
         {
             var dataPlayer = _assetLoader.LoadConfig(PlayerConfigPath) as PlayerConfig;
@@ -43,50 +43,51 @@ namespace PlayerSystem
             InitHead(dataPlayer.Head);
             InitBody(dataPlayer.Body);
             InitButtons();
-            _gameplay.OsPlayGame += UpdateGame;
         }
 
-
-        private void UpdateGame(bool value)
+        public void UpdateGame(bool value, Action<CellItem> onHeadConnect, float time)
         {
+            _isPlay = value;
             _head.gameObject.SetActive(value);
 
             if (value)
             {
+                _dir = Dir.Up;
+                _head.Pos = _startPosHead;
                 var cell = _cellsController.FindCellItem(_startPosHead);
                 if(cell == null) return;
-                _contentCell.Connect(cell);
+                onHeadConnect?.Invoke(cell);
                 _cellsController.SetToCell(cell, _head);
-                _startPosBody = _cellsController.GetNextPos(_startPosHead, Dir.Down);
-                _path.AddLast(SpanBody(_startPosBody));
-
-                for (int i = 1; i < 5; i++)
-                {
-                    _startPosBody = _cellsController.GetNextPos(_startPosBody, Dir.Down);
-                    _path.AddLast(SpanBody(_startPosBody));
-                }
-
-                _moveCoroutine = _coroutineHandler.StartActiveCoroutine(Move());
+                _lastPosBody = _cellsController.GetNextPos(_startPosHead, Dir.Down, () =>  _gameplay.GameOver());
+                SpawnNewBody();
+                
+                _moveCoroutine = _coroutineHandler.StartActiveCoroutine(Move(onHeadConnect, time));
             }
             else
             {
                 _coroutineHandler.StopActiveCoroutine(_moveCoroutine);
-
                 foreach (var body in _path)
                 {
                     _cellsController.ClearCell(body.Pos);
                     _pool.Despawn(body);
                 }
                 _path.Clear();
+                _cellsController.ClearCell(_head.Pos);
             }
         }
 
+        public void SpawnNewBody()
+        {
+            _path.AddLast(SpanBody(_lastPosBody));
+        }
+        
         private PlayerBody SpanBody(Vector2Int pos)
         {
             var body = _pool.Spawn(
                 _bodyPrefab,
                 _parentBodyActive);
 
+            body.Pos = pos;
             var cell = _cellsController.FindCellItem(pos);
             if (cell == null) return body;
             _cellsController.SetToCell(cell, body);
@@ -94,20 +95,28 @@ namespace PlayerSystem
             return body;
         }
 
-        private IEnumerator Move()
+        private IEnumerator Move(Action<CellItem> onHeadConnect, float time)
         {
             while (true)
             {
-                yield return new WaitForSeconds(1f);
-                var newHeadPos = _cellsController.GetNextPos(_head.Pos, _dir);
-                _path.AddFirst(SpanBody(_head.Pos));
+                yield return new WaitForSeconds(time);
+
+                var newHeadPos = _cellsController.GetNextPos(_head.Pos, _dir, () =>  _gameplay.GameOver());
+                if (_isPlay)
+                {
+                    _path.AddFirst(SpanBody(_head.Pos));
+                }
+                
                 var cell = _cellsController.FindCellItem(newHeadPos);
                 if(cell == null) continue;
-                _contentCell.Connect(cell);
+                
+                onHeadConnect?.Invoke(cell);
                 _cellsController.SetToCell(cell, _head);
                 _head.Pos = newHeadPos;
+
                 if (_path.Count <= 0) break;
                 _cellsController.ClearCell(_path.Last.Value.Pos);
+                _lastPosBody = _path.Last.Value.Pos;
                 _pool.Despawn(_path.Last.Value);
                 _path.RemoveLast();
             }
@@ -164,10 +173,5 @@ namespace PlayerSystem
         }
 
         private int GetStartPos(int count) => count % 2 > 0 ? 0 : 1;
-
-        public void Dispose()
-        {
-            _gameplay.OsPlayGame -= UpdateGame;
-        }
     }
 }

@@ -71,7 +71,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.06051977, g: 0.10842517, b: 0.754717, a: 1}
+  m_Color: {r: 1, g: 0, b: 0, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -97,9 +97,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6009075512255360011}
-  - component: {fileID: 6734641158354768267}
+  - component: {fileID: 1227197117567936038}
   m_Layer: 5
-  m_Name: Head
+  m_Name: Enemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -125,7 +125,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &6734641158354768267
+--- !u!114 &1227197117567936038
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -134,8 +134,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 7262108454379991639}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3091f0ca3c4bc0e48955390a2950d331, type: 3}
+  m_Script: {fileID: 11500000, guid: 2d8eb90eb36c77b4daa913176c5f5cc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   _rect: {fileID: 6009075512255360011}
-  _type: 1
+  _type: 3
