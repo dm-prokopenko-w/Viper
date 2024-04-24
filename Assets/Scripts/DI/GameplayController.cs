@@ -18,9 +18,15 @@ namespace GameplaySystem
         
         public void Start()
         {
-            _itemController.SetAction(ButtonViewID + ButtonObject.StartGame, () => UpdateGame(true));
+            _itemController.SetAction(ButtonViewID + ButtonObject.StartGame, StartGame);
         }
 
+        private void StartGame()
+        {
+            _popupController.ActivePopup(PopupsID.Start.ToString(), false);
+            UpdateGame(true);
+        }
+        
         private void UpdateGame(bool value) => OsPlayGame?.Invoke(value);
 
         public void GameOver()

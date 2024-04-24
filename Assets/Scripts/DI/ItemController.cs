@@ -23,22 +23,6 @@ namespace ItemSystem
 			}
 		}
 		
-		public Transform GetTransform(string id)
-		{
-			if (_items.TryGetValue(id, out List<Item> items))
-			{
-				foreach (var item in items)
-				{
-					if (item.Tr == null) continue;
-
-					return item.Tr;
-				}
-				return null;
-			}
-
-			return null;
-		}
-		
 		public RectTransform GetRectTransform(string id)
 		{
 			if (_items.TryGetValue(id, out List<Item> items))
@@ -83,31 +67,6 @@ namespace ItemSystem
 			}
 		}
 		
-		public void PlayAnim(string id, string idAnim)
-		{
-			if (_items.TryGetValue(id, out List<Item> items))
-			{
-				foreach (var item in items)
-				{
-					if (item.Anim == null) continue;
-
-					item.Anim.Play(idAnim);
-				}
-			}
-		}
-		
-		public void SetActiveBtn(string id, bool value)
-		{
-			if (_items.TryGetValue(id, out List<Item> items))
-			{
-				foreach (var item in items)
-				{
-					if (item.Btn == null) continue;
-					item.Btn.gameObject.SetActive(value);
-				}
-			}
-		}
-		
 		public void SetAction(string id, UnityAction<string> func)
 		{
 			if (_items.TryGetValue(id, out List<Item> items))
@@ -136,7 +95,6 @@ namespace ItemSystem
 	public class Item
 	{
 		public Button Btn;
-		public Transform Tr;
 		public RectTransform RTr;
 		public TMP_Text TextTMP;
 		public string Parm;
@@ -151,11 +109,6 @@ namespace ItemSystem
 		public Item(TMP_Text text)
 		{
 			TextTMP = text;
-		}
-
-		public Item(Transform tr)
-		{
-			Tr = tr;
 		}
 		
 		public Item(RectTransform rtr)
